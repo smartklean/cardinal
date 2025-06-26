@@ -5,7 +5,6 @@ namespace App\Http\Controllers\API\V1;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Services\CyberSourceService;
-use App\Services\InterSwitchService;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Cache;
 
@@ -13,7 +12,6 @@ use Illuminate\Support\Facades\Cache;
 class PaymentController extends Controller
 {
     protected $cyberSourceService;
-    protected $interSwitchService;
 
     private $cardNumber = 'card_number';
     private $cvv = 'cvv';
@@ -24,10 +22,9 @@ class PaymentController extends Controller
     private $isRequiredExpiryMonth = 'required|string|max:2';
     private $isRequiredCardNumber = 'required|string|max:19';
 
-    public function __construct(CyberSourceService $cyberSourceService, InterSwitchService $interSwitchService)
+    public function __construct(CyberSourceService $cyberSourceService)
     {
         $this->cyberSourceService = $cyberSourceService;
-        $this->interSwitchService = $interSwitchService;
     }
 
    /**
@@ -605,107 +602,7 @@ class PaymentController extends Controller
   }
 
   //ends trial
-
-    public function resendOTP(Request $request)
-    {
-        $validator = $this->validate($request, [
-            'payment_key' => 'required|string',
-            'authentication_transaction_id' => 'required|string'
-        ]);
-
-        // Retrieve stored payment data
-        $paymentData = Cache::get($request->input('payment_key'));
-
-        if (!$paymentData) {
-            return response()->json([
-                'status' => 'error',
-                'error' => 'Payment session expired or invalid'
-            ], 400);
-        }
-
-        // Check for resend rate limiting
-        $resendKey = 'otp_resend_' . $request->input('payment_key');
-        $resendCount = Cache::get($resendKey, 0);
-        
-        if ($resendCount >= 3) { // Maximum 3 resend attempts
-            return response()->json([
-                'status' => 'error',
-                'error' => 'Maximum OTP resend attempts reached. Please start a new payment.'
-            ], 429);
-        }
-
-        // Increment resend counter
-        Cache::put($resendKey, $resendCount + 1, now()->addMinutes(15));
-
-        // Request new OTP
-        $result = $this->cyberSourceService->resendOTP(
-            $request->input('authentication_transaction_id'),
-            $paymentData['card'],
-            $paymentData['amount'],
-            $paymentData['currency'],
-            [
-                'billing' => $paymentData['billing']
-            ]
-        );
-
-        if ($result['status'] === 'success') {
-            return response()->json([
-                'status' => 'success',
-                'authenticationTransactionId' => $result['data']['authenticationTransactionId'] ?? null,
-                'message' => 'New OTP has been sent to your registered mobile number/email',
-                'remainingAttempts' => 3 - ($resendCount + 1)
-            ]);
-        }
-
-        return response()->json($result, 400);
-    }
-
-    public function validateOTP(Request $request)
-    {
-        $validator = $this->validate($request, [
-            'payment_key' => 'required|string',
-            'otp_code' => 'required|string',
-            'authentication_transaction_id' => 'required|string'
-        ]);
-
-        // if ($validator->fails()) {
-        //     return response()->json([
-        //         'status' => 'error',
-        //         'errors' => $validator->errors()
-        //     ], 422);
-        // }
-
-        // Retrieve stored payment data
-        $paymentData = Cache::get($request->input('payment_key'));
-
-        if (!$paymentData) {
-            return response()->json([
-                'status' => 'error',
-                'error' => 'Payment session expired or invalid'
-            ], 400);
-        }
-
-        // Clean up cache
-        Cache::forget($request->input('payment_key'));
-
-        // Process payment with OTP
-        $result = $this->cyberSourceService->validateOTPAndPay(
-            $paymentData['card'],
-            $paymentData['amount'],
-            $paymentData['currency'],
-            $request->input('otp_code'),
-            $request->input('authentication_transaction_id'),
-            [
-                'billing' => $paymentData['billing']
-            ]
-        );
-
-        return response()->json($result);
-    }
     
-    public function testToken(){
-        return $this->interSwitchService->accessToken();
-    }
 
     public function testCard(Request $request){
 
@@ -727,74 +624,6 @@ class PaymentController extends Controller
         $result = $this->cyberSourceService->verifyPayment($transactionId );
 
         return response()->json($result);
-    }
-
-    public function payWithCard(Request $request){
-        
-        $data = [
-            // 'amount' => $request->amount,
-            // 'callbackUrl' => $request->callbackUrl,
-            // 'deviceInformation' => $request->deviceInformation,
-            'card' => $request->card_number,
-            'pin' => $request->pin,
-            'exp' => $request->expiry,
-            'cvv' => $request->cvv,
-            'publicKeyModulus' => '009c7b3ba621a26c4b02f48cfc07ef6ee0aed8e12b4bd11c5cc0abf80d5206be69e1891e60fc88e2d565e2fabe4d0cf630e318a6c721c3ded718d0c530cdf050387ad0a30a336899bbda877d0ec7c7c3ffe693988bfae0ffbab71b25468c7814924f022cb5fda36e0d2c30a7161fa1c6fb5fbd7d05adbef7e68d48f8b6c5f511827c4b1c5ed15b6f20555affc4d0857ef7ab2b5c18ba22bea5d3a79bd1834badb5878d8c7a4b19da20c1f62340b1f7fbf01d2f2e97c9714a9df376ac0ea58072b2b77aeb7872b54a89667519de44d0fc73540beeaec4cb778a45eebfbefe2d817a8a8319b2bc6d9fa714f5289ec7c0dbc43496d71cf2a642cb679b0fc4072fd2cf',//config('services.payment.modulus'),
-            'publicKeyExponent' => '010001'//config('services.payment.exponent')
-        ];
-
-        $year = explode('/', $data['exp']);
-        $data['exp'] = $year[1].$year[0];
-        return $this->interSwitchService->generateAuthData($data);
-        // return $this->interSwitchService->payWithInterswitchCard($request);
-    }
-
-    public  function randomString($length = 10): string
-    {
-        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        $randomString = '';
-        for ($i = 0; $i < $length; $i++) {
-            $randomString .= $characters[random_int(0, strlen($characters) - 1)];
-        }
-        return $randomString;
-    }
-
-    public function resend(Request $request)
-    {
-        // $validator = $this->validate($request, [
-        //     'payment_id' => 'required|string',
-        //     'amount' =>  'required|numeric' ,
-        // ]);
-
-        // Request new OTP
-        $result = $this->interSwitchService->resendOTP($request->payment_id, $request->amount);
-
-      return $result;
-    }
-
-    public function testwebhook(){
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => 'https://api.flutterwave.com/v3/charges?type=card',
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => ($data),
-            CURLOPT_HTTPHEADER => array(
-                'Authorization: Bearer FLWSECK-08ffb44d1e20d0797c603d96583f79db-19157e9da3bvt-X',
-                'content-type: application/json'
-            ),
-            ));
-    
-            $response = curl_exec($curl);
-    
-            curl_close($curl);
-            echo $response;
-    
-            $res = json_decode($response, true);
     }
 
 

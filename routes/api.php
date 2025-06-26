@@ -33,17 +33,6 @@ Route::post('/process-payment', [PaymentController::class, 'initializePayment'])
 
 Route::get('/test', [PaymentController::class, 'testToken']);
 
-Route::post('/payments/otp/initialize', [PaymentController::class, 'initializePayment']);
-Route::post('/payments/otp/validate', [PaymentController::class, 'validateOTP']);
-Route::post('/payments/otp/resend', [PaymentController::class, 'resendOTP']);
-
-Route::get('/payments/verify/{transactionId}', [PaymentController::class, 'verifyPayment']);
-
-Route::post('/payments/auth-data', [PaymentController::class, 'payWithCard']);
-
-Route::get('/payments/random', [PaymentController::class, 'randomString']);
-
-Route::post('/resend', [PaymentController::class, 'resend']);
 
 Route::post('/testCard', [PaymentController::class, 'testCard']);
 
