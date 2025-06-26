@@ -30,4 +30,19 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'cybersource' => [
+        'merchant_id' => env('CYBERSOURCE_MERCHANT_ID'),
+        'api_key' => env('CYBERSOURCE_API_KEY'),
+        'shared_secret' => env('CYBERSOURCE_SHARED_SECRET'),
+        'environment' => env('CYBERSOURCE_ENVIRONMENT', 'test'),
+    ],
+
+    'interswitch' => [
+        'merchant_code' => env('INTERSWITCH_MERCHANT_CODE'),
+        'client_id' => env('INTERSWITCH_CLIENT_ID'),
+        'secret' => env('INTERSWITCH_SECRET'),
+        'payitem_id'=> env('INTERSWITCH_PAYITEM_ID'),
+       
+    ],
+
 ];

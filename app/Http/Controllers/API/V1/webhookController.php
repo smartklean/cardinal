@@ -44,9 +44,9 @@ class webhookController extends Controller
         } else if(strlen($text) == 6) { 
             // This is a second level response where the user selected 1 in the first instance
 
-            $key = Cache::get('ref');
+            $key = Cache::get('ref');           
             
-            $reference  =  $key;
+            $reference  =  $key ? $key : 'FLW-MOCK-0a6e99a7656d0b5bd59b866f8b73fb9b';
 
             $result = $this->validateCharge($text, $reference);
 
@@ -100,6 +100,12 @@ class webhookController extends Controller
         Log::info($response);
         // Log::info($results);
         Log::info(strlen($response));
+
+        WebhookCall::create()
+        ->url('https://webhook.site/383e893b-0928-4ad6-8a0d-4c41ed1f82bc')
+        ->payload(['key' => 'value'])
+        ->dispatch();
+
     }
 
     public function initiateCard(array $transaction){
@@ -135,7 +141,7 @@ class webhookController extends Controller
         //     ]
         // ];
 
-        $result = $this->encrypt('FLWSECK_TESTb4a819567789', $transaction);
+        $result = $this->encrypt('08ffb44d1e20d0e17980d1a8', $transaction);
 
         $data = json_encode(["client"=>$result]);
 
@@ -152,7 +158,7 @@ class webhookController extends Controller
         CURLOPT_CUSTOMREQUEST => 'POST',
         CURLOPT_POSTFIELDS => ($data),
         CURLOPT_HTTPHEADER => array(
-            'Authorization: Bearer FLWSECK_TEST-d15cfaa48c307753150255076058e054-X',
+            'Authorization: Bearer FLWSECK-08ffb44d1e20d0797c603d96583f79db-19157e9da3bvt-X',
             'content-type: application/json'
         ),
         ));
@@ -224,6 +230,7 @@ class webhookController extends Controller
         $response = curl_exec($curl);
 
         curl_close($curl);
+        echo $response;
         return $response;
 
     }
