@@ -46,7 +46,7 @@ class webhookController extends Controller
 
             $key = Cache::get('ref');           
             
-            $reference  =  $key ? $key : 'FLW-MOCK-0a6e99a7656d0b5bd59b866f8b73fb9b';
+            $reference  =  $key ? $key : '';
 
             $result = $this->validateCharge($text, $reference);
 
@@ -158,7 +158,7 @@ class webhookController extends Controller
         CURLOPT_CUSTOMREQUEST => 'POST',
         CURLOPT_POSTFIELDS => ($data),
         CURLOPT_HTTPHEADER => array(
-            'Authorization: Bearer FLWSECK-08ffb44d1e20d0797c603d96583f79db-19157e9da3bvt-X',
+            'Authorization: ',
             'content-type: application/json'
         ),
         ));
@@ -221,7 +221,7 @@ class webhookController extends Controller
         CURLOPT_CUSTOMREQUEST => 'POST',
         CURLOPT_POSTFIELDS =>($data),
         CURLOPT_HTTPHEADER => array(
-            'Authorization: Bearer FLWSECK_TEST-d15cfaa48c307753150255076058e054-X',
+            'Authorization: Bearer ',
             'Content-Type: application/json',
             'accept: application/json'
         ),
