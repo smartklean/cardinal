@@ -29,10 +29,14 @@ class PaymentController extends Controller
 
    /**
      * Setup payer authentication
-     * 
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
+
+
+    //first call
+
     public function setupAuthentication(Request $request)
     {
         // Validate the request
@@ -52,7 +56,7 @@ class PaymentController extends Controller
         // }
 
         $paymentInformation = [
-           
+
             'paymentInformation' => [
                 'card' => [
                     'type' => $request->input('card_type'),
@@ -61,22 +65,22 @@ class PaymentController extends Controller
                     'number' => $request->input('card_number'),
                 ],
             ],
-           
+
         ];
 
         try {
-            // Extract payment information from request
-            // $paymentInfo = $request->input('paymentInformation');
-
-            // dd($paymentInformation);
-            
-            // Call CyberSource service to setup payer authentication
             $result = $this->cyberSourceService->setupPayerAuthentication($paymentInformation);
-            
             return response()->json([
                 'success' => true,
                 'data' => $result
             ]);
+            // Extract payment information from request
+            // $paymentInfo = $request->input('paymentInformation');
+
+            // dd($paymentInformation);
+
+            // Call CyberSource service to setup payer authentication
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -84,6 +88,8 @@ class PaymentController extends Controller
             ], 500);
         }
     }
+
+    //second call
 
     public function checkPayerAuth(Request $request)
     {
@@ -104,7 +110,7 @@ class PaymentController extends Controller
         // }
 
         // $paymentInformation = [
-           
+
         //     'paymentInformation' => [
         //         'card' => [
         //             'type' => $request->input('card_type'),
@@ -113,78 +119,214 @@ class PaymentController extends Controller
         //             'number' => $request->input('card_number'),
         //         ],
         //     ],
-           
+
         // ];
 
-        $paymentInformation = [
+        // $paymentInformation = [
+        //     "orderInformation" => [
+        //         "amountDetails" => [
+        //             "currency" => $request->input('currency'),
+        //             "totalAmount" => $request->input('amount')
+        //         ],
+        //         "billTo" => [
+        //             "address1" => "1 Market St",
+        //             "address2" => "Address 2",
+        //             "administrativeArea" => "CA",
+        //             "country" => $request->input('country'),
+        //             "locality" => "san francisco",
+        //             "firstName" => "John",
+        //             "lastName" => "Doe",
+        //             "phoneNumber" => "4158880000",
+        //             "email" => "test@cybs.com",
+        //             "postalCode" => "94105"
+        //         ]
+        //     ],
+        //     "paymentInformation" => [
+        //         'card' => [
+        //             'type' => $request->input('card_type'),
+        //             'expirationMonth' => $request->expiry_month,
+        //             'expirationYear' => $request->expiry_year,
+        //             'number' => $request->card_number,
+        //         ],
+        //     ],
+        //     "buyerInformation" => [
+        //         "mobilePhone" => "1245789632"
+        //     ],
+        //     "deviceInformation" => [
+        //         "ipAddress" => "139.130.4.5",
+        //         "httpAcceptContent" => "test",
+        //         "httpBrowserLanguage" => "en_us",
+        //         "httpBrowserJavaEnabled" => "N",
+        //         "httpBrowserJavaScriptEnabled" => "Y",
+        //         "httpBrowserColorDepth" => "24",
+        //         "httpBrowserScreenHeight" => "100000",
+        //         "httpBrowserScreenWidth" => "100000",
+        //         "httpBrowserTimeDifference" => "300",
+        //         "userAgentBrowserValue" => "GxKnLy8TFDUFxJP1t"
+        //     ],
+        //     "consumerAuthenticationInformation" => [
+        //         "deviceChannel" => "BROWSER",
+        //         "returnUrl" => $request->return_url,
+        //         "referenceId" => $request->reference_id,
+        //         "transactionMode" => "eCommerce"
+        //     ]
+        // ];
+ $cardType = $this->cyberSourceService->detectCardType($request->card_number);
+    $amountDetails = [
+            "currency" => $request->currency,
+            "totalAmount" =>$request->amount,
+        ];
+        $billTo = [
+            "address1" => $request->address,
+            "address2" => $request->address,
+            "administrativeArea" => $request->state,
+            "country" =>  $request->country,
+            "locality" => $request->city,
+            "firstName" => $request->first_name,
+            "lastName" => $request->last_name,
+            "phoneNumber" => $request->phone_number,
+            "email" => $request->email,
+            "postalCode" => $request->zipcode
+        ];
+        $cardInfo = [
+            "type" =>      $cardType,
+            "expirationMonth" =>  $request->expiry_month,
+            "expirationYear" =>  $request->expiry_year,
+            "number" =>$request->card_number
+        ];
+        $deviceInfo = $request->browser_info;
+        $payload = [
             "orderInformation" => [
-                "amountDetails" => [
-                    "currency" => $request->input('currency'),
-                    "totalAmount" => $request->input('amount')
-                ],
-                "billTo" => [
-                    "address1" => "1 Market St",
-                    "address2" => "Address 2",
-                    "administrativeArea" => "CA",
-                    "country" => $request->input('country'),
-                    "locality" => "san francisco",
-                    "firstName" => "John",
-                    "lastName" => "Doe",
-                    "phoneNumber" => "4158880000",
-                    "email" => "test@cybs.com",
-                    "postalCode" => "94105"
-                ]
+                "amountDetails" => $amountDetails,
+                "billTo" => $billTo
             ],
             "paymentInformation" => [
-                'card' => [
-                    'type' => $request->input('card_type'),
-                    'expirationMonth' => $request->input('expirationMonth'),
-                    'expirationYear' => $request->input('expirationYear'),
-                    'number' => $request->input('card_number'),
-                ],
+                "card" => $cardInfo
             ],
             "buyerInformation" => [
-                "mobilePhone" => "1245789632"
+                "mobilePhone" => $request->phone_number
             ],
-            "deviceInformation" => [
-                "ipAddress" => "139.130.4.5",
-                "httpAcceptContent" => "test",
-                "httpBrowserLanguage" => "en_us",
-                "httpBrowserJavaEnabled" => "N",
-                "httpBrowserJavaScriptEnabled" => "Y",
-                "httpBrowserColorDepth" => "24",
-                "httpBrowserScreenHeight" => "100000",
-                "httpBrowserScreenWidth" => "100000",
-                "httpBrowserTimeDifference" => "300",
-                "userAgentBrowserValue" => "GxKnLy8TFDUFxJP1t"
-            ],
+            "deviceInformation" => $deviceInfo,
             "consumerAuthenticationInformation" => [
                 "deviceChannel" => "BROWSER",
-                "returnUrl" => $request->input('returnUrl'),
-                "referenceId" => $request->input('referenceId'),
-                "transactionMode" => "eCommerce"
+                "returnUrl" => $request->return_url,
+                "transactionMode" => "eCommerce",
+                "referenceId" => $request->reference_id
             ]
         ];
-        
-        
 
         try {
-            // Extract payment information from request
-            // $paymentInfo = $request->input('paymentInformation');
-
-            // dd($paymentInformation);
-            
-            // Call CyberSource service to setup payer authentication
-            $result = $this->cyberSourceService->checkPayerAuthEnrollment($paymentInformation);
-
-            $stepUp = $result->consumerAuthenticationInformation->stepUpUrl??false;
-            $cavv =isset($result->consumerAuthenticationInformation->cavv)??false;
-            $ucaf = isset($result->consumerAuthenticationInformation->ucafAuthenticationData)??false;
-            dd($stepUp, $cavv, $ucaf);
-            
-            return response()->json([
+            $cyber = $this->cyberSourceService->checkPayerAuthEnrollment($payload);
+// return (["result"=> $cyber, "data"=>$payload ]);
+            $stepUp = $cyber->consumerAuthenticationInformation->stepUpUrl??false;
+            $cavv =isset($cyber->consumerAuthenticationInformation->cavv)??false;
+            $ucaf = isset($cyber->consumerAuthenticationInformation->ucafAuthenticationData)??false;
+            // dd($stepUp, $cavv, $ucaf);
+            $merchantInformation =[
+              "salesOrganizationId" => '00000265327',
+              "merchantDescriptor" => [
+                  "locality" => 'Lagos',
+                  "country" => 'NG',
+                  "address1" => '8, Ibadan Street, Ilupeju',
+                  "name" => 'Alakada',
+                  "postalCode" => ""
+              ],
+              //categoryCode is a mandatory field  it is used to identify the type of business
+              "categoryCode" => '9399',
+          ];
+          $aggregatorId ="";
+          $aggregatorName = "";
+          $consumerAuthenticationInformation=[];
+          if ($cardType == '002'){
+              $consumerAuthenticationInformation = [
+                  "ucafCollectionIndicator" => $cyber->consumerAuthenticationInformation->ucafCollectionIndicator??"",
+                  "ucafAuthenticationData"=>$cyber->consumerAuthenticationInformation->ucafAuthenticationData??"",
+                  "authenticationTransactionId" => $cyber->consumerAuthenticationInformation->authenticationTransactionId??"",
+                  "referenceId" => $request->reference_id,
+                  "directoryServerTransactionId" => $cyber->consumerAuthenticationInformation->directoryServerTransactionId??"",
+                  "authenticationBrand" => $cyber->paymentInformation->card->type??"",
+              ];
+              $aggregatorId = '00000265327';
+              //MasterCard
+              $aggregatorName = 'Innovate1Pay Ltd.';
+          }else{
+              $consumerAuthenticationInformation = [
+                  "cavv" => $cyber->consumerAuthenticationInformation->cavv??"",
+                  "xid" => $cyber->consumerAuthenticationInformation->xid??"",
+                  "authenticationTransactionId" => $cyber->consumerAuthenticationInformation->authenticationTransactionId??"",
+                  "referenceId" => $request->reference_id,
+                  "directoryServerTransactionId" => $cyber->consumerAuthenticationInformation->directoryServerTransactionId??"",
+                  "authenticationBrand" => $cyber->paymentInformation->card->type??"",
+              ];
+              $aggregatorId = '00010082463';
+              //Visa
+              $aggregatorName = 'Esettlement Limited';
+          }
+          $aggregatorInformation = [
+              "name" => $aggregatorName,
+              "subMerchant" => [
+                  "name" => "Esettlement*".'Alakada',
+                  "id" => "PFY000123",
+                  "locality" => 'Lagos',
+                  "address1" => '8, Ibadan Street, Ilupeju',
+                  "country" => 'NG',
+              ],
+              "aggregatorId" => $aggregatorId
+          ];
+          $stepUp = $cyber->consumerAuthenticationInformation->stepUpUrl??false;
+          $cavv =isset($cyber->consumerAuthenticationInformation->cavv)??false;
+          $ucaf = isset($cyber->consumerAuthenticationInformation->ucafAuthenticationData)??false;
+        //   dd($stepUp, $cavv, $ucaf);
+          if($stepUp || $cavv || $ucaf){
+              $payload2 = [
+                  "clientReferenceInformation" => $cyber->clientReferenceInformation,
+                  "paymentInformation" => [
+                      "card" => $cardInfo
+                  ],
+                  "orderInformation" => [
+                      "amountDetails" => $amountDetails,
+                      "billTo" => $billTo
+                  ],
+                  "consumerAuthenticationInformation" =>  $consumerAuthenticationInformation,
+                  "merchantInformation" => $merchantInformation,
+                  "aggregatorInformation" => $aggregatorInformation
+              ];
+              if(!$stepUp){
+                  $payload2 += ["processingInformation" =>[
+                      "capture"=>true,
+                      "commerceIndicator"=>$ucaf?"spa":"vbv"
+                  ]
+                  ];
+                  $response = $this->cyberSourceService->payCyberSource($payload2);
+                   return response()->json([
                 'success' => true,
-                'data' => $result
+                'message' => "Payment successful",
+                'data' => $response
+            ]);
+              }
+              $payload2 += [
+                  "processingInformation" =>[
+                      "actionList" => ["VALIDATE_CONSUMER_AUTHENTICATION"],
+                      "capture"=>true,
+                  ]
+              ];
+              $message = 'HIGH_RISK_STEP_UP';
+              $response = [
+                  "authenticationTransactionId" =>$cyber->consumerAuthenticationInformation->authenticationTransactionId,
+                  "stepUpUrl" => $stepUp,
+                  "accessToken" => $cyber->consumerAuthenticationInformation->accessToken,
+                  "payload" => $payload2
+              ];
+          }else{
+              $message = 'FAILED_FIRST_CARDINAL';
+              $response = [
+                  "card" =>$cardInfo,
+                  "raw" =>$cyber];
+          }
+             return response()->json([
+                'success' => true,
+                'message' =>  $message,
+                'data' => $response
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -192,7 +334,35 @@ class PaymentController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+            // Extract payment information from request
+            // $paymentInfo = $request->input('paymentInformation');
+
+            // dd($paymentInformation);
+
+            // Call CyberSource service to setup payer authentication
+
+
+
     }
+
+    //last call
+    public function validateCyberAuth(Request $request){
+
+    //   $rules = [
+    //       $this->payload => $this->isRequiredArray,
+    //   ];
+    //   $validator =  Validator::make($request->all(), $rules);
+
+    //   if($validator->fails()){
+    //       return $this->jsonValidationError($validator);
+    //   }
+    //   dd($request);
+      $response = $this->cyberSourceService->payCyberSource($request->payload);
+      return response()->json(['status'=>true,
+                "message"=>"Payment Successful",
+                "data" => $response]);
+  }
+
 
     public function validateAuth(Request $request)
     {
@@ -213,7 +383,7 @@ class PaymentController extends Controller
         // }
 
         // $paymentInformation = [
-           
+
         //     'paymentInformation' => [
         //         'card' => [
         //             'type' => $request->input('card_type'),
@@ -222,10 +392,10 @@ class PaymentController extends Controller
         //             'number' => $request->input('card_number'),
         //         ],
         //     ],
-           
+
         // ];
 
-       
+
 
         $paymentInformation = [
             "paymentInformation" => [
@@ -238,21 +408,21 @@ class PaymentController extends Controller
             "consumerAuthenticationInformation" => [
                 "authenticationTransactionId" => "7411747154396754004806"
             ]
-            
+
             ]
         ];
-        
-        
+
+
 
         try {
             // Extract payment information from request
             // $paymentInfo = $request->input('paymentInformation');
 
             // dd($paymentInformation);
-            
+
             // Call CyberSource service to setup payer authentication
             $result = $this->cyberSourceService->validateAuthEnrollment($paymentInformation);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $result
@@ -268,6 +438,8 @@ class PaymentController extends Controller
 
     public function processPayment(Request $request)
     {
+          $cardType = $this->cyberSourceService->detectCardType($request->card_number);
+
         $paymentData = [
             'clientReferenceInformation' => [
                 'code' => 'test_payment',
@@ -364,7 +536,7 @@ class PaymentController extends Controller
             $this->expiryMonth => $this->isRequiredExpiryMonth,
             $this->expiryYear => $this->isRequiredExpiryYear,
         ];
-        
+
         $validator =  Validator::make($request->all(), $rules);
         if($validator->fails()){
             return $this->jsonValidationError($validator);
@@ -380,9 +552,9 @@ class PaymentController extends Controller
                 ]
             ]
         ];
-  
+
         $res = $this->cyberSourceService->setupPayerAuthentication($cardDetails);
-        
+
       if(isset($res->status) && $res->status == 'error'){
         return $this->jsonResponse($res['error'], __($this), 400, [], __('response.errors.invalid_payment_info'));
       }
@@ -422,7 +594,7 @@ class PaymentController extends Controller
     //        $this->returnUrl => $this->isRequiredString,
     //   ];
     //   $validator =  Validator::make($request->all(), $rules);
-  
+
     //   if($validator->fails()){
     //       return $this->jsonValidationError($validator);
     //   }
@@ -435,7 +607,7 @@ class PaymentController extends Controller
           $userPhone = $request->phone_number;
           $amount = $request->amount;
           //taking care of the charges
-  
+
           $amountDetails = [
               "currency" => $request->currency,
               "totalAmount" => $amount,
@@ -454,8 +626,8 @@ class PaymentController extends Controller
           ];
           $cardInfo = [
               "type" =>   $cardType,
-              "expirationMonth" =>  $request->expirationMonth,
-              "expirationYear" =>  $request->expirationYear,
+              "expirationMonth" =>  $request->expiry_month,
+              "expirationYear" =>  $request->expiry_month,
               "number" =>$request->card_number
           ];
           $deviceInfo = $request->browser_info;
@@ -473,14 +645,15 @@ class PaymentController extends Controller
               "deviceInformation" => $deviceInfo,
               "consumerAuthenticationInformation" => [
                   "deviceChannel" => "BROWSER",
-                  "returnUrl" => $request->returnUrl,
+                  "returnUrl" => $request->return_url,
                   "transactionMode" => "eCommerce",
-                  "referenceId" => $request->referenceId
+                  "referenceId" => $request->reference_id
               ]
           ];
 
-          
+
           $cyber = $this->cyberSourceService->checkPayerAuthEnrollment($payload);
+            return ($cyber);
             //   $cyber = $this->cyberSourceCaller($payload,'/risk/v1/authentications');
           $merchantInformation =[
               "salesOrganizationId" => '00000265327',
@@ -586,23 +759,10 @@ class PaymentController extends Controller
       }
       return $response;
   }
-  
-    public function validateCyberAuth(Request $request){
-    //   $rules = [
-    //       $this->payload => $this->isRequiredArray,
-    //   ];
-    //   $validator =  Validator::make($request->all(), $rules);
-  
-    //   if($validator->fails()){
-    //       return $this->jsonValidationError($validator);
-    //   }
-    //   dd($request);
-      $response = $this->cyberSourceService->payCyberSource($request->payload);
-      return $response;
-  }
+
 
   //ends trial
-    
+
 
     public function testCard(Request $request){
 
@@ -620,7 +780,7 @@ class PaymentController extends Controller
      */
     public function verifyPayment($transactionId)
     {
-        
+
         $result = $this->cyberSourceService->verifyPayment($transactionId );
 
         return response()->json($result);

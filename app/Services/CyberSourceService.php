@@ -24,15 +24,16 @@ class CyberSourceService
         $this->apiKey = config('services.cybersource.api_key');
         $this->sharedSecret = config('services.cybersource.shared_secret');
         $this->environment = config('services.cybersource.environment', 'test');
-        $this->baseUrl = $this->environment === 'test' 
+        $this->baseUrl = $this->environment === 'test'
             ? 'https://apitest.cybersource.com'
             : 'https://api.cybersource.com';
+        // $this->baseUrl = 'https://apitest.cybersource.com';
         $this->host = parse_url($this->baseUrl, PHP_URL_HOST);
     }
 
     /**
      * Setup Payer Authentication
-     * 
+     *
      * @param array $paymentInfo Payment information including card details
      * @return array Response from CyberSource API
      * @throws \Exception
@@ -42,15 +43,15 @@ class CyberSourceService
         try {
             // Generate the required headers for CyberSource API
             $digest = $this->generateDigest($paymentInfo);
-                
+
             // Get the RFC1123 formatted date
             $date = $this->getDate();
 
             $path = '/risk/v1/authentication-setups';
-            
+
             // Generate the signature
             $signature = $this->generateSignature('post', $path, $digest, $date);
-            
+
              // Prepare headers
              $headers = [
                 'v-c-merchant-id' => $this->merchantId,
@@ -77,17 +78,17 @@ class CyberSourceService
     {
         $path = '/pts/v2/payments';
         $httpMethod = 'post';
-  
+
         try {
             // Generate the digest for the payload
             $digest = $this->generateDigest($paymentData);
-  
+
             // Get the RFC1123 formatted date
             $date = $this->getDate();
-  
+
             // Generate the signature
             $signature = $this->generateSignature($httpMethod, $path, $digest, $date);
-  
+
             // Prepare headers
             $headers = [
                 'v-c-merchant-id' => $this->merchantId,
@@ -97,7 +98,7 @@ class CyberSourceService
                 'Digest' => $digest,
                 'Signature' => $signature
             ];
-  
+
             $response = Http::withHeaders($headers)
                 ->baseUrl($this->baseUrl)
                 ->post($path, $paymentData);
@@ -116,16 +117,16 @@ class CyberSourceService
         try {
             // Generate the required headers for CyberSource API
             $digest = $this->generateDigest($paymentInfo);
-                
+
             // Get the RFC1123 formatted date
             $date = $this->getDate();
 
             // $path = '/risk/v1/authentication-setups';
             $path = '/risk/v1/authentications';
-            
+
             // Generate the signature
             $signature = $this->generateSignature('post', $path, $digest, $date);
-            
+
              // Prepare headers
              $headers = [
                 'v-c-merchant-id' => $this->merchantId,
@@ -135,13 +136,16 @@ class CyberSourceService
                 'Digest' => $digest,
                 'Signature' => $signature
             ];
-            
+
             $response = Http::withHeaders($headers)
                 ->baseUrl($this->baseUrl)
                 ->post($path, $paymentInfo);
 
-            $responseBody = json_decode($response->getBody()->getContents(), true);
-            return $responseBody;
+             $response = json_decode($response->getBody()->getContents(), true);
+            if (is_array($response)) {
+                $response = json_decode(json_encode($response));
+            }
+            return $response;
         } catch (GuzzleException $e) {
             Log::error('CyberSource API Error: ' . $e->getMessage());
             throw new \Exception('Failed to setup payer authentication: ' . $e->getMessage());
@@ -153,16 +157,16 @@ class CyberSourceService
         try {
             // Generate the required headers for CyberSource API
             $digest = $this->generateDigest($paymentInfo);
-                
+
             // Get the RFC1123 formatted date
             $date = $this->getDate();
 
             // $path = '/risk/v1/authentication-setups';
             $path = '/risk/v1/authentication-results';
-            
+
             // Generate the signature
             $signature = $this->generateSignature('post', $path, $digest, $date);
-            
+
              // Prepare headers
              $headers = [
                 'v-c-merchant-id' => $this->merchantId,
@@ -172,7 +176,7 @@ class CyberSourceService
                 'Digest' => $digest,
                 'Signature' => $signature
             ];
-            
+
             $response = Http::withHeaders($headers)
                 ->baseUrl($this->baseUrl)
                 ->post($path, $paymentInfo);
@@ -187,7 +191,7 @@ class CyberSourceService
 
     /**
      * Generate digest for the payload
-     * 
+     *
      * @param array $payload
      * @return string
      */
@@ -200,7 +204,7 @@ class CyberSourceService
     }
     /**
      * Get RFC1123 formatted date
-     * 
+     *
      * @return string
      */
     protected function getDate(): string
@@ -211,7 +215,7 @@ class CyberSourceService
 
     /**
      * Generate HTTP signature
-     * 
+     *
      * @param string $httpMethod
      * @param string $path
      * @param string $digest
@@ -264,7 +268,7 @@ class CyberSourceService
         ];
     }
 
-   
+
     /**
      * Detect card type based on BIN ranges
      */
@@ -277,13 +281,13 @@ class CyberSourceService
             '002' => '/^5[1-5][0-9]{14}$/',
             '004' => '/^6(?:011|5[0-9]{2})[0-9]{12}$/'
         ];
-  
+
         foreach ($patterns as $type => $pattern) {
             if (preg_match($pattern, $number)) {
                 return $type;
             }
         }
-  
+
         return 'unknown';
     }
 
@@ -344,13 +348,13 @@ class CyberSourceService
             $path = "/pts/v2/transactions/{$transactionId}";
                 // Generate the digest for the payload
                 $digest = null; // $this->generateDigest($paymentData);
-                
+
                 // Get the RFC1123 formatted date
                 $date = $this->getDate();
-                
+
                 // Generate the signature
                 $signature = $this->generateSignature('get', $path, $digest, $date);
-                
+
                 // Prepare headers
                 $headers = [
                     'v-c-merchant-id' => $this->merchantId,
@@ -360,7 +364,7 @@ class CyberSourceService
                     'Digest' => $digest,
                     'Signature' => $signature
                 ];
-    
+
                 $response = Http::withHeaders($headers)
                     ->baseUrl($this->baseUrl)
                     ->get($path);
@@ -385,7 +389,7 @@ class CyberSourceService
     {
         $status = $response['status'] ?? '';
         $reasonCode = $response['errorInformation']['reasonCode'] ?? '';
-        
+
         return [
             'status' => 'success',
             'data' => [
@@ -451,20 +455,54 @@ class CyberSourceService
         };
     }
 
-    public function payCyberSource($payload){
-        $temp= $this->createPayment($payload);
-        $response = json_decode($temp->getBody(), true);
-        if (is_array($response)) {
-            $response = json_decode(json_encode($response));
+    public function payCyberSource($paymentData){
+
+        $path = '/pts/v2/payments';
+        $httpMethod = 'post';
+
+        try {
+            // Generate the digest for the payload
+            $digest = $this->generateDigest($paymentData);
+
+            // Get the RFC1123 formatted date
+            $date = $this->getDate();
+
+            // Generate the signature
+            $signature = $this->generateSignature($httpMethod, $path, $digest, $date);
+
+            // Prepare headers
+            $headers = [
+                'v-c-merchant-id' => $this->merchantId,
+                'Date' => $date,
+                'Host' => $this->host,
+                'Content-Type' => 'application/json',
+                'Digest' => $digest,
+                'Signature' => $signature
+            ];
+
+             $temp = Http::withHeaders($headers)
+                ->baseUrl($this->baseUrl)
+                ->post($path, $paymentData);
+
+            $response = json_decode($temp->getBody(), true);
+            if (is_array($temp)) {
+                $response = json_decode(json_encode($response));
+            }
+
+            if(isset($response->status) && $response->status != 'AUTHORIZED'){
+                return response()->json(['PAYMENT_OR_VALIDATE_FAILED', '01', 400, $response,$response->message??"Something went wrong"]);
+            }
+
+            return $response;
+
+        } catch (Exception $e) {
+            return [
+                'error' => $e->getMessage(),
+                'status' => 'error'
+            ];
         }
 
-        $data = json_decode($temp, true);
 
-        if(isset($response->status) && $response->status != 'AUTHORIZED'){
-            return $this->jsonResponse('PAYMENT_OR_VALIDATE_FAILED', '01', 400, $response,$response->message??"Something went wrong");
-        }
-       
-        return $response;
     }
 
 }
