@@ -38,14 +38,14 @@ Route::post('/testCard', [PaymentController::class, 'testCard']);
 
 Route::post('/payments/auth', [PaymentController::class, 'setupAuthentication']);
 
-//starts
+//starts Esl Integration
 Route::post('/payments/authenticate', [PaymentController::class, 'cyberSourceAuthentication']);
 
 Route::post('/payments/enrol', [PaymentController::class, 'checkPayerAuth']);
 
 Route::post('/payments/validate', [PaymentController::class, 'validateCyberAuth']);
 
-//ends
+//ends Esl Integration
 
 Route::post('/payments/auth/charge', [PaymentController::class, 'cyberCheckPayerAuth']);
 
